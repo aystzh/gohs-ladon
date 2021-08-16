@@ -16,13 +16,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+        "github.com/howeyc/fsnotify"
 )
 
 // with sync for resource lock
-type scratch struct {
-	sync.RWMutex
-	s *hyperscan.Scratch
-}
 
 var (
 	Version  string
@@ -35,6 +32,16 @@ var (
 	Uptime   time.Time
 	RegexMap map[int]RegexLine
 )
+
+// with sync for resource lock
+type scratch struct {
+        sync.RWMutex
+        s *hyperscan.Scratch
+}
+//define
+type monitor struct {
+        watch *fsnotify.Watcher
+}
 
 type Response struct {
 	Errno int         `json:errno`
@@ -75,9 +82,56 @@ func main() {
 	viper.BindPFlag("filepath", rootCmd.Flags().Lookup("filepath"))
 	viper.BindPFlag("flag", rootCmd.Flags().Lookup("flag"))
 
-	rootCmd.Execute()
+        go rootCmd.Execute()
+        //==============文件监控
+        fmt.Printf("################start minitor############")
+        M, err := NewMonitor()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	M.Do()
+	M.watch.Watch("/home/elens/app_zhbx/server/intent/gohs-ladon/patterns")
+	select {}
+  //        log.Println("=======start monitor regexfile=====")
 }
 
+
+//文件监控=====
+func NewMonitor() (monitor, error) {
+	Mon, err := fsnotify.NewWatcher()
+	return monitor{Mon}, err
+}
+func (self monitor) Do() {
+	go func() {
+		for {
+			select {
+			case w := <-self.watch.Event:
+				fmt.Printf(w)
+				if w.IsModify() {
+                                        fmt.Printf("文件有改动.") 
+                                        FilePath = viper.GetString("filepath")
+                                        buildScratch(FilePath)
+					continue
+				}
+				if w.IsDelete() {
+					fmt.Printf("文件被删除.")
+					continue
+				}
+				if w.IsRename() {
+					w = <-self.watch.Event
+					fmt.Printf(w)
+					self.watch.RemoveWatch(w.Name)
+					fmt.Printf(w.Name, " 被重命名.")
+				}
+			case err := <-self.watch.Error:
+				log.Fatalln(err)
+			}
+		}
+	}()
+}
+
+//==================================end==================================
 func run(cmd *cobra.Command, args []string) {
 	// Todo add a goroutine to check if pattern file changed, and reload file.
 
@@ -94,10 +148,11 @@ func run(cmd *cobra.Command, args []string) {
 	Uptime = time.Now()
 
 	fmt.Printf("[%s] gohs-ladon %s Running on %s\n", Uptime.Format(time.RFC3339), Version, addr)
-	if err := s.ListenAndServe(); err != nil {
+	
+        if err := s.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-
+        
 }
 
 func preRunE(cmd *cobra.Command, args []string) error {
