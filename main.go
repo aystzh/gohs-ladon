@@ -107,7 +107,7 @@ func (self monitor) Do() {
 		for {
 			select {
 			case w := <-self.watch.Event:
-				fmt.Printf(w)
+				//fmt.Printf(w)
 				if w.IsModify() {
                                         fmt.Printf("文件有改动.") 
                                         FilePath = viper.GetString("filepath")
@@ -120,7 +120,7 @@ func (self monitor) Do() {
 				}
 				if w.IsRename() {
 					w = <-self.watch.Event
-					fmt.Printf(w)
+					//fmt.Printf(w)
 					self.watch.RemoveWatch(w.Name)
 					fmt.Printf(w.Name, " 被重命名.")
 				}
