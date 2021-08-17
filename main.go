@@ -4,6 +4,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/flier/gohs/hyperscan"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"io"
 	"net"
 	"net/http"
@@ -12,12 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	log "github.com/Sirupsen/logrus"
-	"github.com/flier/gohs/hyperscan"
-	"github.com/howeyc/fsnotify"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+        "github.com/howeyc/fsnotify"
 )
 
 // with sync for resource lock
@@ -36,13 +35,12 @@ var (
 
 // with sync for resource lock
 type scratch struct {
-	sync.RWMutex
-	s *hyperscan.Scratch
+        sync.RWMutex
+        s *hyperscan.Scratch
 }
-
 //define
 type monitor struct {
-	watch *fsnotify.Watcher
+        watch *fsnotify.Watcher
 }
 
 type Response struct {
@@ -84,10 +82,10 @@ func main() {
 	viper.BindPFlag("filepath", rootCmd.Flags().Lookup("filepath"))
 	viper.BindPFlag("flag", rootCmd.Flags().Lookup("flag"))
 
-	go rootCmd.Execute()
-	//==============文件监控
-	fmt.Printf("################start minitor############")
-	M, err := NewMonitor()
+        go rootCmd.Execute()
+        //==============文件监控
+        fmt.Printf("################start minitor############")
+        M, err := NewMonitor()
 	if err != nil {
 		log.Println(err)
 		return
@@ -95,8 +93,9 @@ func main() {
 	M.Do()
 	M.watch.Watch("/home/elens/app_zhbx/server/intent/gohs-ladon/patterns")
 	select {}
-	//        log.Println("=======start monitor regexfile=====")
+  //        log.Println("=======start monitor regexfile=====")
 }
+
 
 //文件监控=====
 func NewMonitor() (monitor, error) {
@@ -108,11 +107,11 @@ func (self monitor) Do() {
 		for {
 			select {
 			case w := <-self.watch.Event:
-				//fmt.Printf(w)
+				fmt.Printf(w)
 				if w.IsModify() {
-					fmt.Printf("文件有改动.")
-					FilePath = viper.GetString("filepath")
-					buildScratch(FilePath)
+                                        fmt.Printf("文件有改动.") 
+                                        FilePath = viper.GetString("filepath")
+                                        buildScratch(FilePath)
 					continue
 				}
 				if w.IsDelete() {
@@ -121,7 +120,7 @@ func (self monitor) Do() {
 				}
 				if w.IsRename() {
 					w = <-self.watch.Event
-					//fmt.Printf(w)
+					fmt.Printf(w)
 					self.watch.RemoveWatch(w.Name)
 					fmt.Printf(w.Name, " 被重命名.")
 				}
@@ -149,11 +148,11 @@ func run(cmd *cobra.Command, args []string) {
 	Uptime = time.Now()
 
 	fmt.Printf("[%s] gohs-ladon %s Running on %s\n", Uptime.Format(time.RFC3339), Version, addr)
-
-	if err := s.ListenAndServe(); err != nil {
+	
+        if err := s.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-
+        
 }
 
 func preRunE(cmd *cobra.Command, args []string) error {
